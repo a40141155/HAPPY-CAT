@@ -34,7 +34,7 @@
       font-size: 0.9rem;
     }
     .banner {
-      background: #facc15;
+      background: #facc15; /* amber */
       padding: 0.4rem 0.6rem;
       font-size: 0.85rem;
       border-radius: 0.5rem;
@@ -100,7 +100,7 @@
  *  CONFIG & DATA
  ************************/
 const API_URL = 'https://script.google.com/macros/s/AKfycbxccuc---iydIORzgJtf4CizHKyRLLwQqlho58shz7Sekyw9n-rMPTDg0TSXn4nx6-yrA/exec';
-const online = true; // 已設置有效 URL
+const online = API_URL && !API_URL.includes('YOUR_DEPLOY_ID') && !API_URL.includes('[DEPLOY_ID]');
 
 const caretakers = ['Jess', '梓豪'];
 
@@ -146,21 +146,21 @@ async function addLogOnline(row) {
 }
 
 const userSelect = document.getElementById('userSelect');
-caretakers.forEach(name => {
-  const opt = document.createElement('option');
-  opt.value = name;
-  opt.textContent = name;
-  userSelect.appendChild(opt);
-});
+caretakers.forEach(n => { const o=document.createElement('option');o.value=n;o.textContent=n;userSelect.appendChild(o); });
 
 let currentLogs = [];
 
 async function syncLogs() {
   try {
-    currentLogs = await fetchLogsOnline();
-    hideBanner();
-  } catch (err) {
-    console.error(err);
+    if (online) {
+      currentLogs = await fetchLogsOnline();
+      hideBanner();
+    } else {
+      showBanner('目前為離線模式，僅儲存於本機');
+      currentLogs = localDayLogs();
+    }
+  } catch (e) {
+    console.error(e);
     showBanner('連線失敗，進入離線模式');
     currentLogs = localDayLogs();
   }
@@ -168,89 +168,45 @@ async function syncLogs() {
   renderLog();
 }
 
-function doneLabels() { return currentLogs.map(l => l.task); }
+function doneLabels() { return currentLogs.map(l=>l.task); }
 
 function render() {
-  const app = document.getElementById('app');
-  app.innerHTML = '';
-  const completedSet = new Set(doneLabels());
-
-  tasks.forEach(group => {
-    const sec = document.createElement('div');
-    sec.className = 'section';
-
-    const h = document.createElement('h2');
-    h.textContent = group.section;
-    sec.appendChild(h);
-
-    group.items.forEach(label => {
-      const wrap = document.createElement('div');
-      wrap.className = 'task';
-
-      const span = document.createElement('span');
-      span.textContent = label + (completedSet.has(label) ? ' ✅' : '');
-      wrap.appendChild(span);
-
-      const btn = document.createElement('button');
-      btn.textContent = '紀錄';
-      if (completedSet.has(label)) btn.disabled = true;
-
-      btn.addEventListener('click', () => {
-        if (btn.nextConfirm) return;
-        const confirmBtn = document.createElement('button');
-        confirmBtn.textContent = '確認';
-        confirmBtn.className = 'confirm';
-        confirmBtn.addEventListener('click', async () => {
-          const row = {
-            date: todayKey(),
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            user: userSelect.value,
-            task: label
-          };
-          try {
-            await addLogOnline(row);
-          } catch (e) {
-            console.error(e);
-            localAdd(row);
-          }
-          currentLogs.push(row);
-          span.textContent = label + ' ✅';
-          btn.disabled = true;
-          confirmBtn.remove();
-          renderLog();
+  const app=document.getElementById('app');
+  app.innerHTML='';
+  const completed=new Set(doneLabels());
+  tasks.forEach(g=>{
+    const sec=document.createElement('div');sec.className='section';
+    const h=document.createElement('h2');h.textContent=g.section;sec.appendChild(h);
+    g.items.forEach(label=>{
+      const wrap=document.createElement('div');wrap.className='task';
+      const span=document.createElement('span');span.textContent=label+(completed.has(label)?' ✅':'');wrap.appendChild(span);
+      const btn=document.createElement('button');btn.textContent='紀錄';if(completed.has(label))btn.disabled=true;
+      btn.addEventListener('click',()=>{
+        if(btn.nextConfirm)return;
+        const c=document.createElement('button');c.textContent='確認';c.className='confirm';
+        c.addEventListener('click',async()=>{
+          const row={date:todayKey(),time:new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}),user:userSelect.value,task:label};
+          try{ online?await addLogOnline(row):localAdd(row);}catch(e){console.error(e);alert('寫入失敗');return;}
+          currentLogs.push(row);span.textContent=label+' ✅';btn.disabled=true;c.remove();renderLog();
         });
-        btn.nextConfirm = true;
-        wrap.appendChild(confirmBtn);
+        btn.nextConfirm=true;wrap.appendChild(c);
       });
-
-      wrap.appendChild(btn);
-      sec.appendChild(wrap);
+      wrap.appendChild(btn);sec.appendChild(wrap);
     });
     app.appendChild(sec);
   });
 }
 
 function renderLog() {
-  const listEl = document.getElementById('logList');
-  listEl.innerHTML = '';
-  const logs = [...currentLogs];
-  logs.sort((a, b) => a.time.localeCompare(b.time));
-  logs.forEach(l => {
-    const li = document.createElement('li');
-    li.textContent = \`\${l.time} - \${l.user} 完成「\${l.task}」\`;
-    listEl.appendChild(li);
-  });
-  if (!logs.length) {
-    const li = document.createElement('li');
-    li.textContent = '今日尚無紀錄';
-    listEl.appendChild(li);
-  }
+  const list=document.getElementById('logList');list.innerHTML='';
+  const logs=[...currentLogs];logs.sort((a,b)=>a.time.localeCompare(b.time));
+  logs.forEach(l=>{const li=document.createElement('li');li.textContent=\`\${l.time} - \${l.user} 完成「\${l.task}」\`;list.appendChild(li);});
+  if(!logs.length){const li=document.createElement('li');li.textContent='今日尚無紀錄';list.appendChild(li);}
 }
 
 syncLogs();
-setInterval(syncLogs, 10000);
-
-userSelect.addEventListener('change', render);
+setInterval(syncLogs,10000);
+userSelect.addEventListener('change',render);
 </script>
 </body>
 </html>
