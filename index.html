@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>貓咪每日照護</title>
+<style>
+:root {
+  --primary: #4f46e5;
+  --accent: #10b981;
+  --bg: #f9fafb;
+  --card: #ffffff;
+  --shadow: rgba(0, 0, 0, 0.05);
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  margin: 0;
+  padding: 1rem;
+  background: var(--bg);
+}
+header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+h1 {
+  font-size: 1.4rem;
+  margin: 0;
+}
+select {
+  padding: 0.4rem 0.6rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--primary);
+  font-size: 0.9rem;
+}
+.section {
+  margin-bottom: 1.25rem;
+}
+.section h2 {
+  font-size: 1.1rem;
+  margin: 0 0 0.5rem 0;
+}
+.task {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  padding: 0.6rem 0.8rem;
+  background: var(--card);
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px var(--shadow);
+}
+.task span {
+  font-size: 0.9rem;
+}
+button {
+  padding: 0.4rem 0.8rem;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.85rem;
+  color: #fff;
+  background: var(--primary);
+}
+button.confirm {
+  background: var(--accent);
+}
+button:disabled {
+  opacity: 0.5;
+}
+#log {
+  margin-top: 2rem;
+}
+#log h2 {
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+}
+#log ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+#log li {
+  background: var(--card);
+  border-radius: 0.75rem;
+  padding: 0.6rem 0.8rem;
+  margin-bottom: 0.4rem;
+  font-size: 0.85rem;
+  box-shadow: 0 1px 3px var(--shadow);
+}
+</style>
+</head>
+<body>
+  <header>
+    <h1>貓咪每日照護</h1>
+    <label>
+      負責人員：
+      <select id="userSelect"></select>
+    </label>
+  </header>
+
+  <div id="app"></div>
+
+  <section id="log">
+    <h2>今日紀錄</h2>
+    <ul id="logList"></ul>
+  </section>
+
+<script>
+// ---------------- 設定 ------------------
+const caretakers = ["Jess", "梓豪"]; // 兩位使用者
+const tasks = [
+  { section: "吃藥(甲亢、止痛、類固醇)", items: ["早上 1/2", "晚上 2/2"] },
+  { section: "喝水", items: ["喝水 1/3", "喝水 2/3", "喝水 3/3"] },
+  { section: "復健", items: ["復健 1/3", "復健 2/3", "復健 3/3"] },
+  { section: "大小便", items: ["早上 1/2", "晚上 2/2"] },
+  { section: "血栓檢查", items: ["血栓檢查 1/2", "血栓檢查 2/2"] },
+  { section: "脫水檢查", items: ["脫水檢查"] }
+];
+const STORAGE_KEY = "catCareLogs";
+// ----------------------------------------
+
+// 初始化使用者下拉
+const userSelect = document.getElementById("userSelect");
+caretakers.forEach(name => {
+  const opt = document.createElement("option");
+  opt.value = name;
+  opt.textContent = name;
+  userSelect.appendChild(opt);
+});
+
+// 取得今天日期鍵
+function todayKey() {
+  const d = new Date();
+  return d.toISOString().split("T")[0]; // YYYY-MM-DD
+}
+
+// 讀寫 localStorage
+function getLogs() {
+  return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+}
+function saveLogs(obj) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(obj));
+}
+
+// 取得今天已完成項目
+function doneLabels() {
+  const logs = getLogs()[todayKey()] || [];
+  return logs.map(l => l.task);
+}
+
+function render() {
+  const app = document.getElementById("app");
+  app.innerHTML = "";
+  const completed = doneLabels();
+
+  tasks.forEach(group => {
+    const sec = document.createElement("div");
+    sec.className = "section";
+
+    const h = document.createElement("h2");
+    h.textContent = group.section;
+    sec.appendChild(h);
+
+    group.items.forEach(label => {
+      const wrap = document.createElement("div");
+      wrap.className = "task";
+
+      const span = document.createElement("span");
+      span.textContent = label + (completed.includes(label) ? " ✅" : "");
+      wrap.appendChild(span);
+
+      const btn = document.createElement("button");
+      btn.textContent = "紀錄";
+      if (completed.includes(label)) btn.disabled = true;
+
+      btn.addEventListener("click", () => {
+        if (btn.nextConfirm) return;
+        const confirmBtn = document.createElement("button");
+        confirmBtn.textContent = "確認";
+        confirmBtn.className = "confirm";
+        confirmBtn.addEventListener("click", () => {
+          // 更新顯示
+          span.textContent = label + " ✅";
+          btn.disabled = true;
+          confirmBtn.remove();
+          // 寫入紀錄
+          const logs = getLogs();
+          const day = todayKey();
+          if (!logs[day]) logs[day] = [];
+          logs[day].push({
+            time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+            task: label,
+            user: userSelect.value
+          });
+          saveLogs(logs);
+          renderLog();
+        });
+        btn.nextConfirm = true;
+        wrap.appendChild(confirmBtn);
+      });
+
+      wrap.appendChild(btn);
+      sec.appendChild(wrap);
+    });
+    app.appendChild(sec);
+  });
+}
+
+function renderLog() {
+  const listEl = document.getElementById("logList");
+  listEl.innerHTML = "";
+  const logs = getLogs()[todayKey()] || [];
+  logs.sort((a, b) => a.time.localeCompare(b.time));
+  logs.forEach(l => {
+    const li = document.createElement("li");
+    li.textContent = `${l.time} - ${l.user} 完成「${l.task}」`;
+    listEl.appendChild(li);
+  });
+  if (!logs.length) {
+    const li = document.createElement("li");
+    li.textContent = "今日尚無紀錄";
+    listEl.appendChild(li);
+  }
+}
+
+// 使用者切換時重繪（只是顯示用，不會清除紀錄）
+userSelect.addEventListener("change", () => {
+  render();
+});
+
+// 初始載入
+render();
+renderLog();
+</script>
+</body>
+</html>
