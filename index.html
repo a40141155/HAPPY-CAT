@@ -11,8 +11,7 @@
     --bg:#ffffff; --shadow:0 6px 20px rgba(0,0,0,.08);
   }
   html,body{height:100%;}
-  body{font-family: Microsoft JhengHei, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; line-height:1.6; margin:0; color:#222; background:var(--bg);
-       padding-top:calc(env(safe-area-inset-top,0px)); padding-bottom:calc(env(safe-area-inset-bottom,0px));}
+  body{font-family: Microsoft JhengHei, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; line-height:1.6; margin:0; color:#222; background:var(--bg);}
   .container{max-width:1100px; margin:0 auto; padding:20px;}
   h1{color:var(--primary); text-align:center; margin:8px 0 16px; font-weight:800; letter-spacing:.5px;}
 
@@ -179,38 +178,10 @@
       </div>
     </section>
   </div>
- 
+
 <script>
 (function(){
-  // ====== 路由顯示 ======
-  var nav = document.getElementById('nav');
-  var sections = ['live','day1','day2'];
-  function show(id){
-    sections.forEach(function(s){
-      var el = document.getElementById(s);
-      if(el){ el.classList.remove('active'); }
-    });
-    var target = document.getElementById(id);
-    if(target){ target.classList.add('active'); }
-    if(id==='live'){ location.hash = '#live'; }
-    if(id==='day1'){ location.hash = '#day1'; }
-    if(id==='day2'){ location.hash = '#day2'; }
-  }
-  nav.addEventListener('click', function(e){
-    var btn = e.target.closest('[data-target]');
-    if(!btn) return;
-    var id = btn.getAttribute('data-target');
-    show(id);
-  });
-  function initFromHash(){
-    var hash = (location.hash||'').replace('#','');
-    if(sections.indexOf(hash) >= 0){ show(hash); }
-    else { show('live'); }
-  }
-  window.addEventListener('hashchange', initFromHash);
-  initFromHash();
-
-  // ====== 日程資料（供現場看板使用） ======
+  // ====== 資料 ======
   var day1Schedule = [
     { time:'14:15–14:25', company:'睿田能源有限公司' },
     { time:'14:25–14:35', company:'振生半導體股份有限公司' },
@@ -235,60 +206,121 @@
     { time:'11:20–11:30', company:'主題分享 – 茂登碳中和環保有限公司' }
   ];
 
+  // ====== DOM ======
+  var nav = document.getElementById('nav');
+  var sections = ['live','day1','day2'];
+  function show(id){
+    sections.forEach(function(s){
+      var el = document.getElementById(s);
+      if(el){ el.classList.remove('active'); }
+    });
+    var target = document.getElementById(id);
+    if(target){ target.classList.add('active'); }
+  }
+  nav.addEventListener('click', function(e){
+    var btn = e.target.closest('[data-target]');
+    if(!btn) return;
+    var id = btn.getAttribute('data-target');
+    // 切頁時，不動現場看板狀態
+    show(id);
+    if(id==='live'){ writeHash(); }
+    if(id==='day1') location.hash = '#day1';
+    if(id==='day2') location.hash = '#day2';
+  });
+
+  // ====== 現場看板狀態 ======
   var liveNowTime = document.getElementById('live-now-time');
   var liveNowCompany = document.getElementById('live-now-company');
   var liveNextTime = document.getElementById('live-next-time');
   var liveNextCompany = document.getElementById('live-next-company');
 
-  var currentList = day1Schedule.slice(); // 預設載入 Day 1
-  var currentIdx = 0;
+  var currentDay = 1;                 // 1 or 2
+  var currentIdx = 0;                 // 0-based
+  function getList(){ return currentDay===1 ? day1Schedule : day2Schedule; }
 
+  // 渲染
   function renderLive(){
-    if(!currentList.length){
-      liveNowTime.textContent = '--:--';
-      liveNowCompany.textContent = '（尚未載入日程）';
-      liveNextTime.textContent = '—';
-      liveNextCompany.textContent = '—';
-      return;
-    }
-    var now = currentList[currentIdx];
-    var next = currentList[(currentIdx+1) % currentList.length];
+    var list = getList();
+    if(!list.length){ return; }
+    // 防呆：索引落在範圍內
+    if(currentIdx < 0) currentIdx = 0;
+    if(currentIdx >= list.length) currentIdx = list.length - 1;
+
+    var now = list[currentIdx];
+    var next = list[Math.min(currentIdx+1, list.length-1)];
+
     liveNowTime.textContent = now.time;
     liveNowCompany.textContent = now.company;
-    liveNextTime.textContent = next.time;
-    liveNextCompany.textContent = next.company;
+    liveNextTime.textContent = (currentIdx+1<list.length) ? next.time : '（已是最後一位）';
+    liveNextCompany.textContent = (currentIdx+1<list.length) ? next.company : '—';
   }
 
-  function setList(which){
-    currentIdx = 0;
-    currentList = (which==='day2') ? day2Schedule.slice() : day1Schedule.slice();
-    renderLive();
+  // 將狀態寫入 hash：#live?d=1&i=3
+  function writeHash(){
+    var params = new URLSearchParams();
+    params.set('d', String(currentDay));
+    params.set('i', String(currentIdx));
+    location.hash = 'live?' + params.toString();
   }
 
-  // 初次渲染
-  renderLive();
+  // 從 hash 讀取狀態
+  function readHash(){
+    var hash = (location.hash||'').replace(/^#/, '');
+    var route = hash.split('?')[0] || '';
+    var qs = hash.includes('?') ? hash.split('?')[1] : '';
+    var sp = new URLSearchParams(qs);
+    var d = parseInt(sp.get('d') || '1', 10);
+    var i = parseInt(sp.get('i') || '0', 10);
 
-  // 控制按鈕
-  document.querySelector('[data-list="day1"]').addEventListener('click', function(){ setList('day1'); });
-  document.querySelector('[data-list="day2"]').addEventListener('click', function(){ setList('day2'); });
+    if(route==='live'){
+      currentDay = (d===2)?2:1;
+      currentIdx = isNaN(i)?0:Math.max(0, i);
+      show('live');
+      renderLive();
+    }else if(route==='day1'){
+      show('day1');
+    }else if(route==='day2'){
+      show('day2');
+    }else{
+      // 預設到現場看板 + Day1 首位
+      currentDay = 1; currentIdx = 0;
+      show('live');
+      renderLive();
+      writeHash();
+    }
+  }
+
+  // 初始
+  readHash();
+
+  // 現場看板：切換日程
+  document.querySelector('[data-list="day1"]').addEventListener('click', function(){
+    currentDay = 1; currentIdx = 0;
+    renderLive(); writeHash();
+  });
+  document.querySelector('[data-list="day2"]').addEventListener('click', function(){
+    currentDay = 2; currentIdx = 0;
+    renderLive(); writeHash();
+  });
+
+  // 上一家／下一家
   document.getElementById('live-prev').addEventListener('click', function(){
-    if(!currentList.length) return;
-    currentIdx = (currentIdx - 1 + currentList.length) % currentList.length;
-    renderLive();
+    if(currentIdx > 0){ currentIdx--; renderLive(); writeHash(); }
   });
   document.getElementById('live-next').addEventListener('click', function(){
-    if(!currentList.length) return;
-    currentIdx = (currentIdx + 1) % currentList.length;
-    renderLive();
+    var list = getList();
+    if(currentIdx < list.length - 1){ currentIdx++; renderLive(); writeHash(); }
   });
 
-  // 鍵盤快速鍵（← / →）
+  // 鍵盤 ← / →
   window.addEventListener('keydown', function(e){
-    if(document.getElementById('live').classList.contains('active')){
-      if(e.key === 'ArrowLeft'){ document.getElementById('live-prev').click(); }
-      if(e.key === 'ArrowRight'){ document.getElementById('live-next').click(); }
-    }
+    if(!document.getElementById('live').classList.contains('active')) return;
+    if(e.key === 'ArrowLeft'){ document.getElementById('live-prev').click(); }
+    if(e.key === 'ArrowRight'){ document.getElementById('live-next').click(); }
   });
+
+  // hash 變化時（別人打開同網址、或你複製連結給別人）
+  window.addEventListener('hashchange', readHash);
 })();
 </script>
 </body>
