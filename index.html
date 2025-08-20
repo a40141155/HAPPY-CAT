@@ -1,327 +1,68 @@
-<!DOCTYPE html>
-<html lang="zh-Hant">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>2025 MGS 創新未來南方 主題館</title>
-<style>
-  :root{
-    --primary:#004aad; --day1:#28a745; --day2:#ff9800; --muted:#6c757d;
-    --border:#d9dde3; --head:#f0f4f9; 
-    --bg:#ffffff; --shadow:0 6px 20px rgba(0,0,0,.08);
-  }
-  html,body{height:100%;}
-  body{font-family: Microsoft JhengHei, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; line-height:1.6; margin:0; color:#222; background:var(--bg);}
-  .container{max-width:1100px; margin:0 auto; padding:20px;}
-  h1{color:var(--primary); text-align:center; margin:8px 0 16px; font-weight:800; letter-spacing:.5px;}
+<!-- Firebase 即時同步：跨裝置自動更新目前正在上台/下一家 -->
+<script type="module">
+  // 1) 先替換成你的 Firebase 專案設定
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
+    projectId: "YOUR_PROJECT",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
 
-  .nav{position:sticky; top:0; z-index:5; display:flex; flex-wrap:wrap; justify-content:center; gap:10px; margin:0 0 16px; padding:10px; background:rgba(255,255,255,.9); backdrop-filter:saturate(140%) blur(6px); border-bottom:1px solid var(--border);} 
-  .btn{appearance:none; border:0; border-radius:12px; padding:10px 18px; color:#fff; font-weight:700; cursor:pointer; box-shadow:var(--shadow);}  
-  .btn:focus-visible{outline:2px solid #222; outline-offset:2px;}
-  .btn-primary{background:var(--primary);} .btn-day1{background:var(--day1);} .btn-day2{background:var(--day2);} 
+  // 2) 初始化
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getDatabase, ref, onValue, set, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
 
-  .section{display:none;}
-  .section.active{display:block;}
-  .card{margin:16px 0;}
-  .card h2{color:var(--primary); text-align:center; margin:14px 0;}
+  // ===== 綁到你現有的變數／函式 =====
+  // 這三個是你原檔案裡面已存在的全域函式／變數（若不在全域，請移到全域）
+  // currentDay (1|2), currentIdx (Number), renderLive() 會把 UI 重新渲染
+  // getList() 取得當前日程清單
 
-  .table-wrap{box-shadow:var(--shadow); border-radius:12px; overflow:hidden; background:#fff;}
-  .table-scroll{overflow:auto; -webkit-overflow-scrolling:touch;}
-  table{width:100%; border-collapse:collapse; font-size:16px; background:#fff; table-layout:fixed;}
-  thead tr{background:var(--head);} 
-  th,td{border:1px solid var(--border); padding:12px;}
-  th{text-align:center;}
-  td:first-child{text-align:center;}
+  // 3) 設定資料路徑（可改成活動代碼）
+  const stateRef = ref(db, "mgs/live-state"); // e.g. mgs-2025/track-a
 
-  /* Day1/Day2：時間欄放寬與置中 */
-  #day1 table th:first-child, #day1 table td:first-child,
-  #day2 table th:first-child, #day2 table td:first-child{width:120px; white-space:nowrap; text-align:center; font-weight:600;}
-  /* 公司欄不換行 + 省略 */
-  #day1 table th:nth-child(2), #day1 table td:nth-child(2),
-  #day2 table th:nth-child(2), #day2 table td:nth-child(2){white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
-  td:last-child{text-align:center; white-space:nowrap;}
-  .pill{display:inline-block; padding:2px 10px; border-radius:999px; font-size:12px; margin-left:8px;}
-  .pill.day1{background:#e8f5e9; color:#256029;} .pill.day2{background:#fff3e0; color:#8f4f00;}
+  // 4) 讀：任何人開啟頁面，都即時跟隨 DB 狀態
+  let suppressWrite = false; // 避免讀回時又觸發寫入循環
+  onValue(stateRef, (snap) => {
+    const val = snap.val();
+    if (!val) return;
+    suppressWrite = true;
+    currentDay = (val.day === 2) ? 2 : 1;
+    currentIdx = Math.max(0, parseInt(val.idx || 0, 10));
+    renderLive();
+    suppressWrite = false;
+  });
 
-  /* 現場看板 */
-  .live-wrap{box-shadow:var(--shadow); border-radius:16px; padding:20px; background:#fff;}
-  .live-controls{display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin-bottom:16px;}
-  .btn-ghost{background:#f3f6fb; color:#0b3a82;}
-  .stage{display:grid; gap:14px;}
-  .stage .now, .stage .next{border:1px solid var(--border); border-radius:14px; padding:16px;}
-  .label{font-weight:800; letter-spacing:.3px; font-size:14px; color:#5b6b82; margin-bottom:6px;}
-  .now .time{font-size:28px; font-weight:900; letter-spacing:.8px; margin:4px 0;}
-  .now .company{font-size:28px; font-weight:800; line-height:1.25;}
-  .next .title{font-weight:800; margin-bottom:6px;}
-  .next .company{font-size:22px; font-weight:700;}
-  .next .time{font-size:16px; font-weight:700; opacity:.8;}
-  .live-nav{display:flex; gap:10px; justify-content:center; margin-top:14px;}
-  .btn-round{border-radius:999px; padding:12px 16px; font-size:16px;}
-
-  @media (min-width:1200px) and (min-aspect-ratio:16/9){
-    .container{max-width:1400px; padding:28px 24px;}
-    h1{font-size:40px; margin:10px 0 22px;}
-    .btn{padding:12px 20px; font-size:18px;}
-    table{font-size:19px;}
-    th,td{padding:16px 14px;}
-    #day1 table th:first-child, #day1 table td:first-child,
-    #day2 table th:first-child, #day2 table td:first-child{width:140px; font-size:18px;}
-    .now .time{font-size:36px;}
-    .now .company{font-size:36px;}
-    .next .company{font-size:26px;}
-  }
-  @media (max-width:430px){
-    .container{padding:10px 12px 16px;}
-    h1{font-size:20px; margin:6px 0 12px;}
-    .nav{gap:8px; padding:8px;}
-    .btn{flex:1 1 calc(50% - 8px); min-width:0; padding:10px 8px; font-size:13px; border-radius:10px;}
-    .card{margin:12px 0;}
-    .card h2{font-size:16px; margin:10px 0;}
-    .table-scroll{max-width:100%; overflow-x:auto;}
-    table{font-size:14px; min-width:950px;}
-    th,td{padding:10px 8px;}
-    /* 時間欄黏左 */
-    #day1 table th:first-child, #day1 table td:first-child,
-    #day2 table th:first-child, #day2 table td:first-child{position:sticky; left:0; background:#fff; z-index:2; font-size:14px; min-width:110px;}
-    .now .time{font-size:24px;}
-    .now .company{font-size:24px;}
-  }
-</style>
-</head>
-<body>
-  <div class="container">
-    <h1>2025 MGS 創新未來南方 主題館</h1>
-
-    <div class="nav" id="nav">
-      <button class="btn btn-primary" data-target="live">現場看板</button>
-      <button class="btn btn-day1" data-target="day1">Day 1 Pitch</button>
-      <button class="btn btn-day2" data-target="day2">Day 2 Pitch</button>
-    </div>
-
-    <!-- 現場看板 -->
-    <section id="live" class="section active">
-      <div class="card">
-        <h2>現場看板（可切換 Day 1 / Day 2、上一家／下一家）</h2>
-        <div class="live-wrap">
-          <div class="live-controls">
-            <button class="btn btn-ghost" data-list="day1">載入 Day 1</button>
-            <button class="btn btn-ghost" data-list="day2">載入 Day 2</button>
-          </div>
-          <div class="stage" aria-live="polite" aria-atomic="true">
-            <div class="now">
-              <div class="label">現在上台</div>
-              <div class="time" id="live-now-time">--:--</div>
-              <div class="company" id="live-now-company">請先選擇日程</div>
-            </div>
-            <div class="next">
-              <div class="title">下一家準備</div>
-              <div class="company" id="live-next-company">—</div>
-              <div class="time" id="live-next-time">—</div>
-            </div>
-          </div>
-          <div class="live-nav">
-            <button class="btn btn-primary btn-round" id="live-prev">← 上一家</button>
-            <button class="btn btn-primary btn-round" id="live-next">下一家 →</button>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Day 1 -->
-    <section id="day1" class="section">
-      <div class="card">
-        <h2>新創企業 Pitch 流程｜Day 1 (8/22 週五 14:15–16:05) <span class="pill day1">10 家</span></h2>
-        <div class="table-wrap"><div class="table-scroll">
-        <table>
-          <thead>
-            <tr><th>時間</th><th>公司名稱</th><th>主持人介紹（約10秒）</th><th>備註</th></tr>
-          </thead>
-          <tbody>
-            <tr><td>14:15–14:25</td><td>睿田能源有限公司</td><td>睿田能源專注於彩繪光電技術研發，其專利技術將傳統太陽能板的發電設備，轉化為客製化美學建築材料。並具有抗污、UV耐候和自潔功能，也幫助世界邁向 2050 淨零碳排目標。</td><td></td></tr>
-            <tr><td>14:25–14:35</td><td>振生半導體股份有限公司</td><td>振生半導體致力於開發PQC資安晶片，為國防、金融科技等領域提供量子安全等級的硬體解決方案。</td><td></td></tr>
-            <tr><td>14:35–14:45</td><td>聯覺科技股份有限公司</td><td>聯覺科技專注紡織AI與布料數位化，提供設計模擬與掃描技術，助品牌數位轉型，提升效率並減少浪費。</td><td></td></tr>
-            <tr><td>14:45–14:55</td><td>光影立方智能科技股份有限公司</td><td>藉由一片的高品質的手機螢幕保護貼，取代昂貴不舒服的3D設備，觀看大量2D即時轉換的3D內容</td><td></td></tr>
-            <tr><td>14:55–15:05</td><td>碩準生技股份有限公司</td><td>碩準生技股份有限公司以萬能抗體鎖技術引領精準醫療新世代，致力打造更安全有效的抗體藥物。現在邀請執行長 呂韻綺博士 為我們揭示最新突破。</td><td></td></tr>
-            <tr><td>15:05–15:15</td><td>智能資安科技股份有限公司</td><td>我們提供PUF晶片安全技術，應用於身分驗證、資料加密與雲端防護，打造更安全、穩定且可擴展的數位環境。</td><td></td></tr>
-            <tr><td>15:15–15:25</td><td>摯陞數位科技有限公司</td><td>摯陞數位專注智慧船舶，以AI與IoT整合船岸數據，打造SRP戰情室與船岸管理解決方案</td><td></td></tr>
-            <tr><td>15:25–15:35</td><td>杰悉科技股份有限公司</td><td>杰悉科技以Digital Twin為技術基底，將IoT數據視覺化，結合場域3D建模，開發3D可視化中央管理系統平台。</td><td></td></tr>
-            <tr><td>15:35–15:45</td><td>源灃節能科技有限公司</td><td>我們首創濾電優化節能技術，降低電路與設備的能耗，實現高效節能20%以上的效果，並透電力監控系統將數據上傳至雲端，進行節能效率分析。以科學化的數據，透過第三方公證單位，開立符合國際標準的節能減碳研究報告書，並透過零成本安裝節能分潤模式，協助企業輕鬆贏接ESG,共同守護地球的永續未來。</td><td></td></tr>
-            <tr><td>15:55–16:05</td><td>那啥科技有限公司</td><td>以創意驅動新產品，展現靈活創新能量。</td><td></td></tr>
-          </tbody>
-        </table>
-        </div></div>
-      </div>
-    </section>
-
-    <!-- Day 2 -->
-    <section id="day2" class="section">
-      <div class="card">
-        <h2>新創企業 Pitch 流程｜Day 2 (8/23 週六 10:00–11:30) <span class="pill day2">9家</span></h2>
-        <div class="table-wrap"><div class="table-scroll">
-        <table>
-          <thead>
-            <tr><th>時間</th><th>公司名稱</th><th>主持人介紹（約10秒）</th><th>備註</th></tr>
-          </thead>
-          <tbody>
-            <tr><td>10:00–10:10</td><td>意恩醫研有限公司</td><td>首創精準配對並快速配送高階敷料，數位記錄癒合進程，全面賦能居家傷口照護。</td><td></td></tr>
-            <tr><td>10:10–10:20</td><td>艾達特整合分析有限公司</td><td>專門提供全面基因體服務支援，幫助客戶輕鬆應用於產業與學界，降低技術使用門檻。</td><td></td></tr>
-            <tr><td>10:20–10:30</td><td>可澍科技有限公司</td><td>自然資產的數位管家，以衛星遙測與AI技術，協助企業評估資產的潛力及風險。</td><td></td></tr>
-            <tr><td>10:30–10:40</td><td>駑迪動力設計有限公司</td><td>1.世界首發4行程動力飛行傘引擎簡介<br/>2.台灣高雄組裝工廠介紹<br/>3.Nudesign JP&TW 成員簡介<br/>4.新機種開發&銷售計畫</td><td></td></tr>
-            <tr><td>10:40–10:50</td><td>睿田能源有限公司</td><td>睿田能源專注於彩繪光電技術研發，其專利技術將傳統太陽能板的發電設備，轉化為客製化美學建築材料。並具有抗污、UV耐候和自潔功能，也幫助世界邁向 2050 淨零碳排目標。</td><td></td></tr>
-            <tr><td>10:50–11:00</td><td>力能電實業股份有限公司</td><td>力能電實業本著“運電共生，健康綠能”永續生態鏈的創新概念，創造世界第一能讓人們可以一邊運動同時又能發電的運動綠能新模式。</td><td></td></tr>
-            <tr><td>11:00–11:10</td><td>加加減減股份有限公司</td><td>大家都對「醫美」不陌生！但您曾聽過幫太陽能電廠塗上「助曬劑」、做「醫美」嗎？讓我們歡迎「加加減減」告訴大家！</td><td></td></tr>
-            <tr><td>11:10–11:20</td><td>主題分享 – 遞伊家科技股份有限公司</td><td>這家公司是亞灣進駐企業，邀請遞伊家科技上台分享。</td><td></td></tr>
-            <tr><td>11:20–11:30</td><td>主題分享 – 茂登碳中和環保有限公司</td><td>這家公司是亞灣進駐企業，邀請茂登炭中和環保上台分享。</td><td></td></tr>
-          </tbody>
-        </table>
-        </div></div>
-      </div>
-    </section>
-  </div>
-
-<script>
-(function(){
-  // ====== 資料 ======
-  var day1Schedule = [
-    { time:'14:15–14:25', company:'睿田能源有限公司' },
-    { time:'14:25–14:35', company:'振生半導體股份有限公司' },
-    { time:'14:35–14:45', company:'聯覺科技股份有限公司' },
-    { time:'14:45–14:55', company:'光影立方智能科技股份有限公司' },
-    { time:'14:55–15:05', company:'碩準生技股份有限公司' },
-    { time:'15:05–15:15', company:'智能資安科技股份有限公司' },
-    { time:'15:15–15:25', company:'摯陞數位科技有限公司' },
-    { time:'15:25–15:35', company:'杰悉科技股份有限公司' },
-    { time:'15:35–15:45', company:'源灃節能科技有限公司' },
-    { time:'15:55–16:05', company:'那啥科技有限公司' }
-  ];
-  var day2Schedule = [
-    { time:'10:00–10:10', company:'意恩醫研有限公司' },
-    { time:'10:10–10:20', company:'艾達特整合分析有限公司' },
-    { time:'10:20–10:30', company:'可澍科技有限公司' },
-    { time:'10:30–10:40', company:'駑迪動力設計有限公司' },
-    { time:'10:40–10:50', company:'睿田能源有限公司' },
-    { time:'10:50–11:00', company:'力能電實業股份有限公司' },
-    { time:'11:00–11:10', company:'加加減減股份有限公司' },
-    { time:'11:10–11:20', company:'主題分享 – 遞伊家科技股份有限公司' },
-    { time:'11:20–11:30', company:'主題分享 – 茂登碳中和環保有限公司' }
-  ];
-
-  // ====== DOM ======
-  var nav = document.getElementById('nav');
-  var sections = ['live','day1','day2'];
-  function show(id){
-    sections.forEach(function(s){
-      var el = document.getElementById(s);
-      if(el){ el.classList.remove('active'); }
+  // 5) 寫：只有主持台在按鈕時寫入 DB，其他裝置自動跟上
+  async function writeState() {
+    if (suppressWrite) return;
+    await set(stateRef, {
+      day: currentDay,
+      idx: currentIdx,
+      updatedAt: serverTimestamp()
     });
-    var target = document.getElementById(id);
-    if(target){ target.classList.add('active'); }
-  }
-  nav.addEventListener('click', function(e){
-    var btn = e.target.closest('[data-target]');
-    if(!btn) return;
-    var id = btn.getAttribute('data-target');
-    // 切頁時，不動現場看板狀態
-    show(id);
-    if(id==='live'){ writeHash(); }
-    if(id==='day1') location.hash = '#day1';
-    if(id==='day2') location.hash = '#day2';
-  });
-
-  // ====== 現場看板狀態 ======
-  var liveNowTime = document.getElementById('live-now-time');
-  var liveNowCompany = document.getElementById('live-now-company');
-  var liveNextTime = document.getElementById('live-next-time');
-  var liveNextCompany = document.getElementById('live-next-company');
-
-  var currentDay = 1;                 // 1 or 2
-  var currentIdx = 0;                 // 0-based
-  function getList(){ return currentDay===1 ? day1Schedule : day2Schedule; }
-
-  // 渲染
-  function renderLive(){
-    var list = getList();
-    if(!list.length){ return; }
-    // 防呆：索引落在範圍內
-    if(currentIdx < 0) currentIdx = 0;
-    if(currentIdx >= list.length) currentIdx = list.length - 1;
-
-    var now = list[currentIdx];
-    var next = list[Math.min(currentIdx+1, list.length-1)];
-
-    liveNowTime.textContent = now.time;
-    liveNowCompany.textContent = now.company;
-    liveNextTime.textContent = (currentIdx+1<list.length) ? next.time : '（已是最後一位）';
-    liveNextCompany.textContent = (currentIdx+1<list.length) ? next.company : '—';
   }
 
-  // 將狀態寫入 hash：#live?d=1&i=3
-  function writeHash(){
-    var params = new URLSearchParams();
-    params.set('d', String(currentDay));
-    params.set('i', String(currentIdx));
-    location.hash = 'live?' + params.toString();
-  }
-
-  // 從 hash 讀取狀態
-  function readHash(){
-    var hash = (location.hash||'').replace(/^#/, '');
-    var route = hash.split('?')[0] || '';
-    var qs = hash.includes('?') ? hash.split('?')[1] : '';
-    var sp = new URLSearchParams(qs);
-    var d = parseInt(sp.get('d') || '1', 10);
-    var i = parseInt(sp.get('i') || '0', 10);
-
-    if(route==='live'){
-      currentDay = (d===2)?2:1;
-      currentIdx = isNaN(i)?0:Math.max(0, i);
-      show('live');
-      renderLive();
-    }else if(route==='day1'){
-      show('day1');
-    }else if(route==='day2'){
-      show('day2');
-    }else{
-      // 預設到現場看板 + Day1 首位
-      currentDay = 1; currentIdx = 0;
-      show('live');
-      renderLive();
-      writeHash();
-    }
-  }
-
-  // 初始
-  readHash();
-
-  // 現場看板：切換日程
-  document.querySelector('[data-list="day1"]').addEventListener('click', function(){
-    currentDay = 1; currentIdx = 0;
-    renderLive(); writeHash();
+  // 6) 取代你原本對 hash 的 write：把這三處綁寫 DB
+  //    - 切換日程
+  document.querySelector('[data-list="day1"]')?.addEventListener('click', () => { currentDay = 1; currentIdx = 0; renderLive(); writeState(); });
+  document.querySelector('[data-list="day2"]')?.addEventListener('click', () => { currentDay = 2; currentIdx = 0; renderLive(); writeState(); });
+  //    - 上一家／下一家
+  document.getElementById('live-prev')?.addEventListener('click', () => {
+    if (currentIdx > 0) { currentIdx--; renderLive(); writeState(); }
   });
-  document.querySelector('[data-list="day2"]').addEventListener('click', function(){
-    currentDay = 2; currentIdx = 0;
-    renderLive(); writeHash();
+  document.getElementById('live-next')?.addEventListener('click', () => {
+    const list = getList();
+    if (currentIdx < list.length - 1) { currentIdx++; renderLive(); writeState(); }
   });
-
-  // 上一家／下一家
-  document.getElementById('live-prev').addEventListener('click', function(){
-    if(currentIdx > 0){ currentIdx--; renderLive(); writeHash(); }
-  });
-  document.getElementById('live-next').addEventListener('click', function(){
-    var list = getList();
-    if(currentIdx < list.length - 1){ currentIdx++; renderLive(); writeHash(); }
-  });
-
-  // 鍵盤 ← / →
-  window.addEventListener('keydown', function(e){
+  //    - 鍵盤 ← / →
+  window.addEventListener('keydown', (e) => {
     if(!document.getElementById('live').classList.contains('active')) return;
-    if(e.key === 'ArrowLeft'){ document.getElementById('live-prev').click(); }
-    if(e.key === 'ArrowRight'){ document.getElementById('live-next').click(); }
+    if(e.key === 'ArrowLeft'){ const b=document.getElementById('live-prev'); b && b.click(); }
+    if(e.key === 'ArrowRight'){ const b=document.getElementById('live-next'); b && b.click(); }
   });
-
-  // hash 變化時（別人打開同網址、或你複製連結給別人）
-  window.addEventListener('hashchange', readHash);
-})();
 </script>
-</body>
-</html>
