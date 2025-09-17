@@ -1,196 +1,54 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-TW">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>2025 MGS 創新未來南方 主題館</title>
-<style>
-  :root{
-    --primary:#004aad; --day1:#28a745; --day2:#ff9800;
-    --border:#d9dde3; --head:#f0f4f9; --bg:#ffffff; --shadow:0 6px 20px rgba(0,0,0,.08);
-  }
-  html,body{height:100%;}
-  body{font-family: Microsoft JhengHei, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; line-height:1.6; margin:0; color:#222; background:var(--bg);
-       padding-top:calc(env(safe-area-inset-top,0px)); padding-bottom:calc(env(safe-area-inset-bottom,0px));}
-  .container{max-width:1100px; margin:0 auto; padding:20px;}
-  h1{color:var(--primary); text-align:center; margin:8px 0 16px; font-weight:800; letter-spacing:.5px;}
-
-  .nav{position:sticky; top:0; z-index:5; display:flex; flex-wrap:wrap; justify-content:center; gap:10px; margin:0 0 16px; padding:10px; background:rgba(255,255,255,.9); backdrop-filter:saturate(140%) blur(6px); border-bottom:1px solid var(--border);} 
-  .btn{appearance:none; border:0; border-radius:12px; padding:10px 18px; color:#fff; font-weight:700; cursor:pointer; box-shadow:var(--shadow);}  
-  .btn:focus-visible{outline:2px solid #222; outline-offset:2px;}
-  .btn-day1{background:var(--day1);} .btn-day2{background:var(--day2);} .btn-primary{background:var(--primary);} 
-
-  .section{display:none;}
-  .section.active{display:block;}
-  .card{margin:16px 0;}
-  .card h2{color:var(--primary); text-align:center; margin:14px 0;}
-
-  .table-wrap{box-shadow:var(--shadow); border-radius:12px; overflow:hidden; background:#fff;}
-  .table-scroll{overflow:auto; -webkit-overflow-scrolling:touch;}
-  table{width:100%; border-collapse:collapse; font-size:16px; background:#fff; table-layout:fixed;}
-  thead tr{background:var(--head);} 
-  th,td{border:1px solid var(--border); padding:12px;}
-  th{text-align:center;}
-  td:first-child{text-align:center;}
-
-  /* Day1/Day2：時間欄放寬與置中 */
-  #day1 table th:first-child, #day1 table td:first-child,
-  #day2 table th:first-child, #day2 table td:first-child{width:120px; white-space:nowrap; text-align:center; font-weight:600;}
-  /* 公司欄不換行 + 省略 */
-  #day1 table th:nth-child(2), #day1 table td:nth-child(2),
-  #day2 table th:nth-child(2), #day2 table td:nth-child(2){white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
-  td:last-child{text-align:center; white-space:nowrap;}
-  .pill{display:inline-block; padding:2px 10px; border-radius:999px; font-size:12px; margin-left:8px;}
-  .pill.day1{background:#e8f5e9; color:#256029;} .pill.day2{background:#fff3e0; color:#8f4f00;}
-
-  /* 注意事項（潤飾 + 大字易讀） */
-  .notice{box-shadow:var(--shadow); border-radius:16px; padding:26px 28px; background:#fff;}
-  .notice h3{margin:0 0 10px;}
-  .notice ul{margin:0; padding-left:28px; list-style:disc;}
-  .notice li{margin:14px 0; font-weight:700; font-size: clamp(19px, 2.5vw, 34px); line-height: 1.95; letter-spacing:.2px;}
-  .notice .sub{font-weight:800; color:var(--primary);} 
-  .notice li::marker{ font-size:1.2em; color:var(--primary); }
-  .notice b{ font-weight:900; }
-
-  /* ====== 全站響應式 ====== */
-  @media (min-width:1200px) and (min-aspect-ratio:16/9){
-    .container{max-width:1400px; padding:28px 24px;}
-    h1{font-size:40px; margin:10px 0 22px;}
-    .btn{padding:12px 20px; font-size:18px;}
-    table{font-size:19px;}
-    th,td{padding:16px 14px;}
-    #day1 table th:first-child, #day1 table td:first-child,
-    #day2 table th:first-child, #day2 table td:first-child{width:140px; font-size:18px;}
-    /* 舞台大螢幕時再放大注意事項 */
-    .notice li{ font-size: clamp(22px, 2.8vw, 40px); }
-  }
-  @media (max-width:430px){ /* iPhone Pro 寬度級距 */
-    .container{padding:10px 12px 16px;}
-    h1{font-size:20px; margin:6px 0 12px;}
-    .nav{gap:8px; padding:8px;}
-    .btn{flex:1 1 calc(33% - 8px); min-width:0; padding:10px 8px; font-size:13px; border-radius:10px;}
-    .card{margin:12px 0;}
-    .card h2{font-size:16px; margin:10px 0;}
-    .table-scroll{max-width:100%; overflow-x:auto;}
-    table{font-size:14px; min-width:950px;}
-    th,td{padding:10px 8px;}
-    /* 時間欄黏左 */
-    #day1 table th:first-child, #day1 table td:first-child,
-    #day2 table th:first-child, #day2 table td:first-child{position:sticky; left:0; background:#fff; z-index:2; font-size:14px; min-width:110px;}
-    /* 行動裝置加大注意事項行距與字級 */
-    .notice li{ font-size: 19px; line-height: 1.9; }
-  }
-</style>
+  <meta charset="UTF-8">
+  <title>跳轉頁產生器</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: sans-serif; max-width: 500px; margin: 20px auto; }
+    textarea { width: 100%; min-height: 150px; margin: 10px 0; }
+    input[type='text'] { width: 100%; padding: 8px; margin: 5px 0 10px 0; }
+    button { padding: 8px 16px; }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <h1>2025 MGS 創新未來南方 主題館</h1>
-
-    <div class="nav" id="nav">
-      <button class="btn btn-day1" data-target="day1">Day 1 Pitch</button>
-      <button class="btn btn-day2" data-target="day2">Day 2 Pitch</button>
-      <button class="btn btn-primary" data-target="notice">注意事項</button>
-    </div>
-
-    <!-- Day 1 -->
-    <section id="day1" class="section active">
-      <div class="card">
-        <h2>新創企業 Pitch 流程｜Day 1 (8/22 週五 14:15–16:05) <span class="pill day1">10 家</span></h2>
-        <div class="table-wrap"><div class="table-scroll">
-        <table>
-          <thead>
-            <tr><th>時間</th><th>公司名稱</th><th>主持人介紹（約10秒）</th><th>備註</th></tr>
-          </thead>
-          <tbody>
-            <tr><td>14:15–14:25</td><td>睿田能源有限公司</td><td>睿田能源專注於彩繪光電技術研發，其專利技術將傳統太陽能板的發電設備，轉化為客製化美學建築材料。並具有抗污、UV耐候和自潔功能，也幫助世界邁向 2050 淨零碳排目標。</td><td></td></tr>
-            <tr><td>14:25–14:35</td><td>振生半導體股份有限公司</td><td>振生半導體致力於開發PQC資安晶片，為國防、金融科技等領域提供量子安全等級的硬體解決方案。</td><td></td></tr>
-            <tr><td>14:35–14:45</td><td>聯覺科技股份有限公司</td><td>聯覺科技專注紡織AI與布料數位化，提供設計模擬與掃描技術，助品牌數位轉型，提升效率並減少浪費。</td><td></td></tr>
-            <tr><td>14:45–14:55</td><td>光影立方智能科技股份有限公司</td><td>藉由一片的高品質的手機螢幕保護貼，取代昂貴不舒服的3D設備，觀看大量2D即時轉換的3D內容</td><td></td></tr>
-            <tr><td>14:55–15:05</td><td>碩準生技股份有限公司</td><td>碩準生技股份有限公司以萬能抗體鎖技術引領精準醫療新世代，致力打造更安全有效的抗體藥物。現在邀請執行長 呂韻綺博士 為我們揭示最新突破。</td><td></td></tr>
-            <tr><td>15:05–15:15</td><td>智能資安科技股份有限公司</td><td>我們提供PUF晶片安全技術，應用於身分驗證、資料加密與雲端防護，打造更安全、穩定且可擴展的數位環境。</td><td></td></tr>
-            <tr><td>15:15–15:25</td><td>摯陞數位科技有限公司</td><td>摯陞數位專注智慧船舶，以AI與IoT整合船岸數據，打造SRP戰情室與船岸管理解決方案</td><td></td></tr>
-            <tr><td>15:25–15:35</td><td>杰悉科技股份有限公司</td><td>杰悉科技以Digital Twin為技術基底，將IoT數據視覺化，結合場域3D建模，開發3D可視化中央管理系統平台。</td><td></td></tr>
-            <tr><td>15:35–15:45</td><td>源灃節能科技有限公司</td><td>我們首創濾電優化節能技術，降低電路與設備的能耗，實現高效節能20%以上的效果，並透電力監控系統將數據上傳至雲端，進行節能效率分析。以科學化的數據，透過第三方公證單位，開立符合國際標準的節能減碳研究報告書，並透過零成本安裝節能分潤模式，協助企業輕鬆贏接ESG,共同守護地球的永續未來。</td><td></td></tr>
-            <tr><td>15:55–16:05</td><td>優那科創有限公司</td><td>以智慧辨識系統改善製造業現場流程</td><td></td></tr>
-          </tbody>
-        </table>
-        </div></div>
-      </div>
-    </section>
-
-    <!-- Day 2 -->
-    <section id="day2" class="section">
-      <div class="card">
-        <h2>新創企業 Pitch 流程｜Day 2 (8/23 週六 10:00–11:30) <span class="pill day2">9家</span></h2>
-        <div class="table-wrap"><div class="table-scroll">
-        <table>
-          <thead>
-            <tr><th>時間</th><th>公司名稱</th><th>主持人介紹（約10秒）</th><th>備註</th></tr>
-          </thead>
-          <tbody>
-            <tr><td>10:00–10:10</td><td>意恩醫研有限公司</td><td>首創精準配對並快速配送高階敷料，數位記錄癒合進程，全面賦能居家傷口照護。</td><td></td></tr>
-            <tr><td>10:10–10:20</td><td>艾達特整合分析有限公司</td><td>專門提供全面基因體服務支援，幫助客戶輕鬆應用於產業與學界，降低技術使用門檻。</td><td></td></tr>
-            <tr><td>10:20–10:30</td><td>可澍科技有限公司</td><td>自然資產的數位管家，以衛星遙測與AI技術，協助企業評估資產的潛力及風險。</td><td></td></tr>
-            <tr><td>10:30–10:40</td><td>駑迪動力設計有限公司</td><td>1.世界首發4行程動力飛行傘引擎簡介<br/>2.台灣高雄組裝工廠介紹<br/>3.Nudesign JP&TW 成員簡介<br/>4.新機種開發&銷售計畫</td><td></td></tr>
-            <tr><td>10:40–10:50</td><td>睿田能源有限公司</td><td>睿田能源專注於彩繪光電技術研發，其專利技術將傳統太陽能板的發電設備，轉化為客製化美學建築材料。並具有抗污、UV耐候和自潔功能，也幫助世界邁向 2050 淨零碳排目標。</td><td></td></tr>
-            <tr><td>10:50–11:00</td><td>力能電實業股份有限公司</td><td>力能電實業本著“運電共生，健康綠能”永續生態鏈的創新概念，創造世界第一能讓人們可以一邊運動同時又能發電的運動綠能新模式。</td><td></td></tr>
-            <tr><td>11:00–11:10</td><td>加加減減股份有限公司</td><td>大家都對「醫美」不陌生！但您曾聽過幫太陽能電廠塗上「助曬劑」、做「醫美」嗎？讓我們歡迎「加加減減」告訴大家！</td><td></td></tr>
-            <tr><td>11:10–11:20</td><td>主題分享 – 遞伊家科技股份有限公司</td><td>亞灣進駐企業，邀請遞伊家科技上台分享。</td><td></td></tr>
-            <tr><td>11:20–11:30</td><td>主題分享 – 茂登碳中和環保有限公司</td><td>亞灣進駐企業，邀請茂登碳中和環保上台分享。</td><td></td></tr>
-          </tbody>
-        </table>
-        </div></div>
-      </div>
-    </section>
-
-    <!-- 注意事項（潤飾 + 大字易讀 + 響應式） -->
-    <section id="notice" class="section">
-      <div class="card">
-        <h2>注意事項</h2>
-        <div class="notice">
-          <ul>
-            <li><b>請提前報到：</b>請於表定時間前 <span class="sub">15 分鐘</span> 至服務台完成報到與領取問卷。</li>
-            <li><b>上台準備：</b>上台前 <span class="sub">3 分鐘</span> 請至舞台區等待。</li>
-            <li><b>識別配戴：</b>上台請全程配戴名牌，<span class="sub">方便現場辨識</span>。</li>
-            <li><b>簡報時程：</b>簡報 <span class="sub">6 分鐘</span>，Q&A <span class="sub">2 題</span>。</li>
-            <li><b>時間提醒：</b>剩餘 <span class="sub">3 分鐘</span> 與 <span class="sub">時間截止</span> 將以舉牌提示。</li>
-            <li><b>提問方式：</b>Q&A 採 <span class="sub">統問統答</span>，由主持人 <span class="sub">統一引導</span>。</li>
-            <li><b>回饋問卷：</b>活動後將提供問卷，請於會後完成填寫並繳給蕭先生，完成回填者 <span class="sub">有機會獲得後續深度媒合安排【無需提供佐證資料】</span>。</li>
-            <li><b>現場聯絡資訊：</b>0986-836-209 蕭先生 <span class="sub"></span>。</li>
-
-          </ul>
-        </div>
-      </div>
-    </section>
-  </div>
-
-<script>
-(function(){
-  // 分頁顯示
-  var nav = document.getElementById('nav');
-  var sections = ['day1','day2','notice'];
-  function show(id){
-    sections.forEach(function(s){
-      var el = document.getElementById(s);
-      if(el){ el.classList.remove('active'); }
-    });
-    var target = document.getElementById(id);
-    if(target){ target.classList.add('active'); }
-    location.hash = '#'+id;
-  }
-  nav.addEventListener('click', function(e){
-    var btn = e.target.closest('[data-target]');
-    if(!btn) return;
-    show(btn.getAttribute('data-target'));
-  });
-  function initFromHash(){
-    var hash = (location.hash||'').replace('#','');
-    if(sections.indexOf(hash) >= 0){ show(hash); }
-    else { show('day1'); }
-  }
-  window.addEventListener('hashchange', initFromHash);
-  initFromHash();
-})();
-</script>
+  <h2>自訂跳轉頁產生器</h2>
+  <p>在下方輸入最終要跳轉的網址（例如 Facebook 粉專、IG、任意網址）：</p>
+  <input id="targetUrl" type="text" placeholder="請輸入目標網址" />
+  <button onclick="generate()">產生跳轉HTML檔案</button>
+  <p>產生結果（可複製貼到 index.html 上傳 GitHub Pages）：</p>
+  <textarea id="result"></textarea>
+  <script>
+    function generate() {
+      let url = document.getElementById('targetUrl').value.trim();
+      if (!url) {
+        alert('請輸入網址！');
+        return;
+      }
+      let fallbackUrl = url.replace(/^fb:\/\/.*$/, 'https://facebook.com');
+      let html = `<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>自動跳轉頁</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script>
+    window.onload = function() {
+      window.location = "${url}";
+      setTimeout(function() {
+        window.location = "${fallbackUrl}";
+      }, 600);
+    }
+  </script>
+</head>
+<body>
+  <p>正在為你嘗試跳轉...</p>
+  <p>如未自動跳轉，<a href="${url}" target="_blank">請點此</a></p>
+</body>
+</html>
+`;
+      document.getElementById('result').value = html;
+    }
+  </script>
 </body>
 </html>
